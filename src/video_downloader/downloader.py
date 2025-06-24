@@ -1,5 +1,6 @@
 # src/video_downloader/downloader.py
 import yt_dlp
+from yt_dlp.utils import DownloadError
 
 def download_video(url, output_path='%(title)s.%(ext)s', file_format='mp4', resolution=None, is_playlist=False, progress_hooks=None):
     """
@@ -39,5 +40,12 @@ def download_video(url, output_path='%(title)s.%(ext)s', file_format='mp4', reso
             'preferedformat': file_format,
         })
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([url]) 
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
+    except DownloadError as e:
+        # Extract a cleaner error message from yt-dlp's exception
+        raise DownloadError(f"Failed to download: {e.args[0]}")
+    except Exception as e:
+        # Catch any other unexpected errors
+        raise Exception(f"An unexpected error occurred: {e}") 
