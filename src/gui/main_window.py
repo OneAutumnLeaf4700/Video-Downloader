@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                            QLabel, QLineEdit, QComboBox, QCheckBox, 
                            QPushButton, QProgressBar, QFileDialog, QMessageBox)
 from PyQt5.QtCore import Qt, QThread
+from PyQt5.QtGui import QIcon
 from .worker import DownloaderWorker
 from src.video_downloader.downloader import download_video
 
@@ -34,7 +35,9 @@ class MainWindow(QMainWindow):
         output_label = QLabel("Save to:")
         self.output_path_input = QLineEdit()
         self.output_path_input.setText(os.path.join(os.getcwd(), "downloaded_content"))
+        self.output_path_input.setReadOnly(True)
         browse_button = QPushButton("Browse")
+        browse_button.setIcon(QIcon.fromTheme("document-open"))
         browse_button.clicked.connect(self.browse_output_directory)
         output_layout.addWidget(output_label)
         output_layout.addWidget(self.output_path_input)
@@ -74,6 +77,7 @@ class MainWindow(QMainWindow):
         # Download Button
         self.download_button = QPushButton("Download")
         self.download_button.setFixedHeight(40)
+        self.download_button.setIcon(QIcon.fromTheme("arrow-down"))
         self.download_button.clicked.connect(self.start_download)
         layout.addWidget(self.download_button)
 
@@ -159,6 +163,7 @@ class MainWindow(QMainWindow):
         # Update UI
         self.download_button.setEnabled(False)
         self.status_label.setText("Download in progress...")
+        QApplication.setOverrideCursor(Qt.WaitCursor)
         self.progress_bar.setValue(0)
 
     def on_download_finished(self):
@@ -166,6 +171,7 @@ class MainWindow(QMainWindow):
         self.status_label.setText("Download finished successfully!")
         self.progress_bar.setValue(100)
         self.download_button.setEnabled(True)
+        QApplication.restoreOverrideCursor()
         self.thread.quit()
         self.thread.wait()
 
@@ -174,6 +180,7 @@ class MainWindow(QMainWindow):
         self.show_error_dialog(error_message)
         self.status_label.setText("Download failed. Please try again.")
         self.download_button.setEnabled(True)
+        QApplication.restoreOverrideCursor()
         self.thread.quit()
         self.thread.wait()
 
