@@ -1,0 +1,96 @@
+/* src/gui/style.qss */
+
+QMainWindow {
+    background-color: #2c3e50; /* Dark blue-grey */
+}
+
+QWidget {
+    color: #ecf0f1; /* Light grey text */
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 11pt;
+}
+
+QLabel {
+    color: #bdc3c7; /* Lighter grey for labels */
+}
+
+QLineEdit {
+    background-color: #34495e; /* Slightly lighter dark blue */
+    border: 1px solid #2c3e50;
+    border-radius: 4px;
+    padding: 6px;
+    color: #ecf0f1;
+}
+
+QLineEdit:focus {
+    border: 1px solid #3498db; /* Blue highlight on focus */
+}
+
+QComboBox {
+    background-color: #34495e;
+    border: 1px solid #2c3e50;
+    border-radius: 4px;
+    padding: 6px;
+    min-width: 6em;
+}
+
+QComboBox::drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: top right;
+    width: 20px;
+    border-left-width: 1px;
+    border-left-color: #2c3e50;
+    border-left-style: solid;
+    border-top-right-radius: 3px;
+    border-bottom-right-radius: 3px;
+}
+
+QComboBox QAbstractItemView {
+    background-color: #34495e;
+    border: 1px solid #2c3e50;
+    selection-background-color: #3498db;
+}
+
+QCheckBox {
+    spacing: 10px;
+}
+
+QCheckBox::indicator {
+    width: 16px;
+    height: 16px;
+}
+
+QPushButton {
+    background-color: #3498db; /* Bright blue for primary actions */
+    color: #ffffff;
+    border: none;
+    border-radius: 4px;
+    padding: 10px 16px;
+    font-weight: bold;
+}
+
+QPushButton:hover {
+    background-color: #2980b9; /* Darker blue on hover */
+}
+
+QPushButton:pressed {
+    background-color: #1f618d; /* Even darker when pressed */
+}
+
+QPushButton:disabled {
+    background-color: #5d6d7e;
+    color: #aeb6bf;
+}
+
+QProgressBar {
+    border: 1px solid #bdc3c7;
+    border-radius: 4px;
+    text-align: center;
+    background-color: #34495e;
+    color: #ecf0f1;
+}
+
+QProgressBar::chunk {
+    background-color: #27ae60; /* Green for progress */
+    border-radius: 4px;
+} 
