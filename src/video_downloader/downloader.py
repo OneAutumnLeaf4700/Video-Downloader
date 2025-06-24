@@ -1,7 +1,7 @@
 # src/video_downloader/downloader.py
 import yt_dlp
 
-def download_video(url, output_path='%(title)s.%(ext)s', file_format='mp4', resolution=None, is_playlist=False):
+def download_video(url, output_path='%(title)s.%(ext)s', file_format='mp4', resolution=None, is_playlist=False, progress_hooks=None):
     """
     Downloads a video or playlist from a given URL with specified options.
 
@@ -10,11 +10,13 @@ def download_video(url, output_path='%(title)s.%(ext)s', file_format='mp4', reso
     :param file_format: The desired file format ('mp4', 'mp3', etc.).
     :param resolution: The desired video resolution (e.g., '720', '1080').
     :param is_playlist: True to download a playlist, False for a single video.
+    :param progress_hooks: A list of functions to be called on download progress.
     """
     ydl_opts = {
         'outtmpl': output_path,
         'noplaylist': not is_playlist,
         'postprocessors': [],
+        'progress_hooks': progress_hooks or [],
     }
 
     if file_format == 'mp3':

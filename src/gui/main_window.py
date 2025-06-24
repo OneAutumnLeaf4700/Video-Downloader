@@ -1,8 +1,11 @@
 # src/gui/main_window.py
+import os
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                            QLabel, QLineEdit, QComboBox, QCheckBox, 
-                           QPushButton, QProgressBar)
-from PyQt5.QtCore import Qt
+                           QPushButton, QProgressBar, QFileDialog)
+from PyQt5.QtCore import Qt, QThread
+from .worker import DownloaderWorker
+from src.video_downloader.downloader import download_video
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -25,6 +28,18 @@ class MainWindow(QMainWindow):
         url_layout.addWidget(url_label)
         url_layout.addWidget(self.url_input)
         layout.addLayout(url_layout)
+
+        # Output Directory Selection
+        output_layout = QHBoxLayout()
+        output_label = QLabel("Save to:")
+        self.output_path_input = QLineEdit()
+        self.output_path_input.setText(os.path.join(os.getcwd(), "downloaded_content"))
+        browse_button = QPushButton("Browse")
+        browse_button.clicked.connect(self.browse_output_directory)
+        output_layout.addWidget(output_label)
+        output_layout.addWidget(self.output_path_input)
+        output_layout.addWidget(browse_button)
+        layout.addLayout(output_layout)
 
         # Format and Resolution Selection
         format_res_layout = QHBoxLayout()
@@ -79,25 +94,84 @@ class MainWindow(QMainWindow):
         # Add stretch to push everything to the top
         layout.addStretch()
 
+        self.thread = None
+        self.worker = None
+
+    def browse_output_directory(self):
+        """Open a dialog to select the output directory."""
+        directory = QFileDialog.getExistingDirectory(self, "Select Directory")
+        if directory:
+            self.output_path_input.setText(directory)
+
     def on_format_changed(self, format_text):
         """Enable/disable resolution combo box based on format selection"""
         is_video = format_text.lower() == "mp4"
         self.resolution_combo.setEnabled(is_video)
         self.resolution_combo.setVisible(is_video)
-        self.resolution_combo.parent().findChild(QLabel, "").setVisible(is_video)
+        # Find the QLabel associated with the resolution combo box and show/hide it.
+        # This is a bit of a workaround to find the label in the layout.
+        res_label = self.resolution_combo.parent().findChild(QLabel)
+        if res_label:
+            res_label.setVisible(is_video)
 
     def start_download(self):
-        """Initiate the download process"""
+        """Initiate the download process in a background thread."""
         url = self.url_input.text().strip()
         if not url:
-            self.status_label.setText("Please enter a URL")
+            self.status_label.setText("Error: Please enter a URL")
             return
 
-        # Get selected options
-        format_option = self.format_combo.currentText().lower()
-        resolution = self.resolution_combo.currentText().replace("p", "") if format_option == "mp4" else None
-        is_playlist = self.playlist_check.isChecked()
+        output_dir = self.output_path_input.text().strip()
+        if not output_dir:
+            self.status_label.setText("Error: Please select an output directory")
+            return
 
-        # TODO: Implement actual download logic
-        self.status_label.setText(f"Starting download: {format_option} {'playlist' if is_playlist else 'video'}")
-        self.progress_bar.setValue(0) 
+        # Prepare download options
+        options = {
+            'output_path': os.path.join(output_dir, '%(title)s.%(ext)s'),
+            'file_format': self.format_combo.currentText().lower(),
+            'resolution': self.resolution_combo.currentText().replace('p', '') if self.resolution_combo.isEnabled() else None,
+            'is_playlist': self.playlist_check.isChecked(),
+        }
+        
+        # Setup and start the background worker
+        self.thread = QThread()
+        self.worker = DownloaderWorker(download_video, url, options)
+        self.worker.moveToThread(self.thread)
+
+        # Connect signals and slots
+        self.thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self.on_download_finished)
+        self.worker.error.connect(self.on_download_error)
+        self.worker.progress.connect(self.update_progress)
+        
+        self.thread.start()
+
+        # Update UI
+        self.download_button.setEnabled(False)
+        self.status_label.setText("Download in progress...")
+
+    def on_download_finished(self):
+        """Called when the download is successfully completed."""
+        self.status_label.setText("Download finished successfully!")
+        self.progress_bar.setValue(100)
+        self.download_button.setEnabled(True)
+        self.thread.quit()
+        self.thread.wait()
+
+    def on_download_error(self, error_message):
+        """Called when an error occurs during download."""
+        self.status_label.setText(f"Error: {error_message}")
+        self.download_button.setEnabled(True)
+        self.thread.quit()
+        self.thread.wait()
+
+    def update_progress(self, data):
+        """Update the progress bar based on yt-dlp's output."""
+        if data['status'] == 'downloading':
+            total_bytes = data.get('total_bytes') or data.get('total_bytes_estimate', 0)
+            if total_bytes > 0:
+                percentage = (data['downloaded_bytes'] / total_bytes) * 100
+                self.progress_bar.setValue(int(percentage))
+        elif data['status'] == 'finished':
+             self.progress_bar.setValue(100) 
