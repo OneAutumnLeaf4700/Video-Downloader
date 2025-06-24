@@ -1,15 +1,41 @@
 # src/video_downloader/downloader.py
 import yt_dlp
 
-def download_video(url, output_path='%(title)s.%(ext)s'):
+def download_video(url, output_path='%(title)s.%(ext)s', file_format='mp4', resolution=None, is_playlist=False):
     """
-    Downloads a video from a given URL.
+    Downloads a video or playlist from a given URL with specified options.
 
-    :param url: The URL of the video to download.
-    :param output_path: The output template for the downloaded file.
+    :param url: The URL of the video or playlist to download.
+    :param output_path: The output template for the downloaded file(s).
+    :param file_format: The desired file format ('mp4', 'mp3', etc.).
+    :param resolution: The desired video resolution (e.g., '720', '1080').
+    :param is_playlist: True to download a playlist, False for a single video.
     """
     ydl_opts = {
         'outtmpl': output_path,
+        'noplaylist': not is_playlist,
+        'postprocessors': [],
     }
+
+    if file_format == 'mp3':
+        ydl_opts['format'] = 'bestaudio/best'
+        ydl_opts['postprocessors'].append({
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        })
+    else: # For video formats like mp4, webm, etc.
+        format_string = 'bestvideo'
+        if resolution:
+            format_string += f'[height<={resolution}]'
+        format_string += '+bestaudio/best'
+        ydl_opts['format'] = format_string
+        
+        # Add a postprocessor to convert to the desired format
+        ydl_opts['postprocessors'].append({
+            'key': 'FFmpegVideoConvertor',
+            'preferedformat': file_format,
+        })
+
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([url]) 
