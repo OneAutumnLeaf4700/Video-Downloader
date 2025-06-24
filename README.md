@@ -1,7 +1,29 @@
 <!-- README.md -->
 # Video Downloader
 
+![App Banner](docs/screenshots/banner.png)
+
+[![Python](https://img.shields.io/badge/python-3.8%2B-blue?logo=python)](https://www.python.org/)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
 A simple yet powerful video downloader with a graphical user interface built using Python and PyQt5. This tool allows you to download videos and playlists from hundreds of websites.
+
+---
+
+## Screenshots
+
+> **Tip:** Place your screenshots in the `docs/screenshots/` folder. Replace the placeholder images below with your own!
+
+### Main Window
+![Main Window](docs/screenshots/main_window.png)
+
+### Download in Progress
+![Download Progress](docs/screenshots/progress.png)
+
+### Error Handling
+![Error Dialog](docs/screenshots/error.png)
+
+---
 
 ## Features
 
