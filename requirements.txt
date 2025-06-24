@@ -1,1 +1,4 @@
 # requirements.txt 
+
+PyQt5
+yt-dlp
