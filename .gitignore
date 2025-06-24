@@ -1,0 +1,72 @@
+#venv
+venv/
+
+#pytest cache
+.pytest_cache/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+
+# Distribution / packaging
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+egg-info/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# PyQt5 UI files
+*.ui
+*.qrc
+
+# Downloaded video/audio files
+/downloaded_content
+*.mp4
+*.mp3
+*.webm
+*.mkv
+*.flv
+*.avi
+*.mov
+*.wav
+*.aac
+*.ogg
+*.opus
+*.m4a
+*.3gp
+*.ts
+*.srt
+*.vtt
+*.part
+
+# Test output
+/test_sample.*
+
+# Logs
+*.log
+
+# Environment variables
+.env
+.env.*
