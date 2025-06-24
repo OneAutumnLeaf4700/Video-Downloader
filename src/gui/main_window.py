@@ -2,7 +2,7 @@
 import os
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                            QLabel, QLineEdit, QComboBox, QCheckBox, 
-                           QPushButton, QProgressBar, QFileDialog)
+                           QPushButton, QProgressBar, QFileDialog, QMessageBox)
 from PyQt5.QtCore import Qt, QThread
 from .worker import DownloaderWorker
 from src.video_downloader.downloader import download_video
@@ -97,6 +97,15 @@ class MainWindow(QMainWindow):
         self.thread = None
         self.worker = None
 
+    def show_error_dialog(self, message):
+        """Displays a critical error message in a dialog box."""
+        dialog = QMessageBox()
+        dialog.setIcon(QMessageBox.Critical)
+        dialog.setText("An Error Occurred")
+        dialog.setInformativeText(message)
+        dialog.setWindowTitle("Error")
+        dialog.exec_()
+
     def browse_output_directory(self):
         """Open a dialog to select the output directory."""
         directory = QFileDialog.getExistingDirectory(self, "Select Directory")
@@ -118,12 +127,12 @@ class MainWindow(QMainWindow):
         """Initiate the download process in a background thread."""
         url = self.url_input.text().strip()
         if not url:
-            self.status_label.setText("Error: Please enter a URL")
+            self.show_error_dialog("Please enter a video or playlist URL.")
             return
 
         output_dir = self.output_path_input.text().strip()
-        if not output_dir:
-            self.status_label.setText("Error: Please select an output directory")
+        if not os.path.isdir(output_dir):
+            self.show_error_dialog(f"The selected output directory does not exist:\n{output_dir}")
             return
 
         # Prepare download options
@@ -150,6 +159,7 @@ class MainWindow(QMainWindow):
         # Update UI
         self.download_button.setEnabled(False)
         self.status_label.setText("Download in progress...")
+        self.progress_bar.setValue(0)
 
     def on_download_finished(self):
         """Called when the download is successfully completed."""
@@ -161,7 +171,8 @@ class MainWindow(QMainWindow):
 
     def on_download_error(self, error_message):
         """Called when an error occurs during download."""
-        self.status_label.setText(f"Error: {error_message}")
+        self.show_error_dialog(error_message)
+        self.status_label.setText("Download failed. Please try again.")
         self.download_button.setEnabled(True)
         self.thread.quit()
         self.thread.wait()
