@@ -1,19 +1,32 @@
 # src/gui/main_window.py
 import os
-from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-                           QLabel, QLineEdit, QComboBox, QCheckBox, 
-                           QPushButton, QProgressBar, QFileDialog, QMessageBox)
+from PyQt5.QtWidgets import (
+    QMainWindow,
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QComboBox,
+    QCheckBox,
+    QPushButton,
+    QProgressBar,
+    QFileDialog,
+    QMessageBox,
+    QApplication,
+)
 from PyQt5.QtCore import Qt, QThread
 from PyQt5.QtGui import QIcon
 from .worker import DownloaderWorker
 from src.video_downloader.downloader import download_video
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Video Downloader")
         self.setMinimumSize(600, 400)
-        
+
         # Create central widget and main layout
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
@@ -46,7 +59,7 @@ class MainWindow(QMainWindow):
 
         # Format and Resolution Selection
         format_res_layout = QHBoxLayout()
-        
+
         # Format Selection
         format_layout = QHBoxLayout()
         format_label = QLabel("Format:")
@@ -56,7 +69,7 @@ class MainWindow(QMainWindow):
         format_layout.addWidget(format_label)
         format_layout.addWidget(self.format_combo)
         format_res_layout.addLayout(format_layout)
-        
+
         # Resolution Selection
         resolution_layout = QHBoxLayout()
         resolution_label = QLabel("Resolution:")
@@ -65,7 +78,7 @@ class MainWindow(QMainWindow):
         resolution_layout.addWidget(resolution_label)
         resolution_layout.addWidget(self.resolution_combo)
         format_res_layout.addLayout(resolution_layout)
-        
+
         # Add some stretch to keep the dropdowns from expanding too much
         format_res_layout.addStretch()
         layout.addLayout(format_res_layout)
@@ -121,11 +134,13 @@ class MainWindow(QMainWindow):
         is_video = format_text.lower() == "mp4"
         self.resolution_combo.setEnabled(is_video)
         self.resolution_combo.setVisible(is_video)
-        # Find the QLabel associated with the resolution combo box and show/hide it.
-        # This is a bit of a workaround to find the label in the layout.
-        res_label = self.resolution_combo.parent().findChild(QLabel)
-        if res_label:
-            res_label.setVisible(is_video)
+        # Find the resolution label by traversing the layout
+        for i in range(self.resolution_combo.parent().layout().count()):
+            item = self.resolution_combo.parent().layout().itemAt(i)
+            if item and item.widget() and isinstance(item.widget(), QLabel):
+                if "Resolution" in item.widget().text():
+                    item.widget().setVisible(is_video)
+                    break
 
     def start_download(self):
         """Initiate the download process in a background thread."""
@@ -136,17 +151,23 @@ class MainWindow(QMainWindow):
 
         output_dir = self.output_path_input.text().strip()
         if not os.path.isdir(output_dir):
-            self.show_error_dialog(f"The selected output directory does not exist:\n{output_dir}")
+            self.show_error_dialog(
+                f"The selected output directory does not exist:\n{output_dir}"
+            )
             return
 
         # Prepare download options
         options = {
-            'output_path': os.path.join(output_dir, '%(title)s.%(ext)s'),
-            'file_format': self.format_combo.currentText().lower(),
-            'resolution': self.resolution_combo.currentText().replace('p', '') if self.resolution_combo.isEnabled() else None,
-            'is_playlist': self.playlist_check.isChecked(),
+            "output_path": os.path.join(output_dir, "%(title)s.%(ext)s"),
+            "file_format": self.format_combo.currentText().lower(),
+            "resolution": (
+                self.resolution_combo.currentText().replace("p", "")
+                if self.resolution_combo.isEnabled()
+                else None
+            ),
+            "is_playlist": self.playlist_check.isChecked(),
         }
-        
+
         # Setup and start the background worker
         self.thread = QThread()
         self.worker = DownloaderWorker(download_video, url, options)
@@ -157,7 +178,7 @@ class MainWindow(QMainWindow):
         self.worker.finished.connect(self.on_download_finished)
         self.worker.error.connect(self.on_download_error)
         self.worker.progress.connect(self.update_progress)
-        
+
         self.thread.start()
 
         # Update UI
@@ -186,10 +207,10 @@ class MainWindow(QMainWindow):
 
     def update_progress(self, data):
         """Update the progress bar based on yt-dlp's output."""
-        if data['status'] == 'downloading':
-            total_bytes = data.get('total_bytes') or data.get('total_bytes_estimate', 0)
+        if data["status"] == "downloading":
+            total_bytes = data.get("total_bytes") or data.get("total_bytes_estimate", 0)
             if total_bytes > 0:
-                percentage = (data['downloaded_bytes'] / total_bytes) * 100
+                percentage = (data["downloaded_bytes"] / total_bytes) * 100
                 self.progress_bar.setValue(int(percentage))
-        elif data['status'] == 'finished':
-             self.progress_bar.setValue(100) 
+        elif data["status"] == "finished":
+            self.progress_bar.setValue(100)
