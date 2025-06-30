@@ -14,11 +14,17 @@ from PyQt5.QtWidgets import (
     QFileDialog,
     QMessageBox,
     QApplication,
+    QListWidget,
+    QListWidgetItem,
+    QTabWidget,
+    QGroupBox,
+    QTextEdit,
 )
-from PyQt5.QtCore import Qt, QThread
+from PyQt5.QtCore import Qt, QThread, QTimer
 from PyQt5.QtGui import QIcon
 from .worker import DownloaderWorker
 from src.video_downloader.downloader import download_video
+from src.video_downloader.queue_manager import DownloadQueueManager, DownloadStatus
 
 
 class MainWindow(QMainWindow):
