@@ -193,27 +193,62 @@ def ensure_download_folders(base_path):
     return DownloadFolderManager(base_path)
 
 
-def get_organized_output_path(base_path, is_playlist=False, playlist_info=None, filename_template="%(title)s.%(ext)s"):
+def get_organized_output_path(
+    base_path, 
+    is_playlist=False, 
+    playlist_info=None, 
+    video_info=None,
+    file_format='mp4',
+    filename_template="%(title)s.%(ext)s"
+):
     """
     Get the appropriate output path for organized downloads.
     
     :param base_path: Base download path
     :param is_playlist: Whether this is a playlist download
     :param playlist_info: Playlist information dictionary
+    :param video_info: Video information dictionary
+    :param file_format: File format ('mp4' or 'mp3')
     :param filename_template: Template for filename
     :return: Full output path template
     """
-    folder_manager = DownloadFolderManager(base_path)
+    from pathlib import Path
+    
+    base_path = Path(base_path)
+    
+    # Create format-specific base folders
+    format_folder = base_path / file_format.lower()
+    videos_folder = format_folder / "videos"
+    playlists_folder = format_folder / "playlists"
+    
+    # Ensure base folders exist
+    videos_folder.mkdir(parents=True, exist_ok=True)
+    playlists_folder.mkdir(parents=True, exist_ok=True)
     
     if is_playlist and playlist_info:
         # Create playlist-specific folder
-        playlist_folder = folder_manager.create_playlist_folder(
-            playlist_info.get('title', 'Unknown Playlist'),
-            playlist_info.get('uploader')
-        )
+        playlist_title = DownloadFolderManager._sanitize_name(playlist_info.get('title', 'Unknown Playlist'))
+        uploader = DownloadFolderManager._sanitize_name(playlist_info.get('uploader', 'Unknown'))
+        
+        # Create folder name with uploader if available
+        if uploader and uploader != 'Unknown':
+            folder_name = f"{uploader} - {playlist_title}"
+        else:
+            folder_name = playlist_title
+            
+        playlist_folder = playlists_folder / folder_name
+        playlist_folder.mkdir(parents=True, exist_ok=True)
+        
         output_path = playlist_folder / filename_template
+    elif video_info:
+        # Create video-specific folder
+        video_title = DownloadFolderManager._sanitize_name(video_info.get('title', 'Unknown Video'))
+        video_folder = videos_folder / video_title
+        video_folder.mkdir(parents=True, exist_ok=True)
+        
+        output_path = video_folder / filename_template
     else:
-        # Single video goes to videos folder
-        output_path = folder_manager.get_videos_folder() / filename_template
+        # Fallback to videos folder if no info is available
+        output_path = videos_folder / filename_template
     
     return str(output_path)

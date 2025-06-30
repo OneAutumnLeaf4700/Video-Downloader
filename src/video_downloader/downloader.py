@@ -68,20 +68,65 @@ def get_playlist_info(url):
         return None
 
 
-def create_organized_folders(base_path, is_playlist=False, playlist_info=None):
+def get_video_info(url):
+    """
+    Extract video information without downloading.
+    
+    :param url: The video URL
+    :return: Dictionary with video info (title, uploader, duration, etc.)
+    """
+    ydl_opts = {
+        'quiet': True,  # Suppress output
+        'no_warnings': True,  # Suppress warnings
+    }
+    
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            
+            if info is None:
+                return None
+                
+            # For single videos or if it's the first video of a playlist
+            if info.get('_type') == 'playlist':
+                # If URL points to a playlist but we want single video info
+                # Get the first video info
+                entries = info.get('entries', [])
+                if entries:
+                    info = entries[0]
+                else:
+                    return None
+                    
+            return {
+                'title': info.get('title', 'Unknown Video'),
+                'uploader': info.get('uploader', 'Unknown'),
+                'description': info.get('description', ''),
+                'duration': info.get('duration', 0),
+                'id': info.get('id', ''),
+                'webpage_url': info.get('webpage_url', url)
+            }
+    except Exception as e:
+        print(f"Warning: Could not extract video info: {e}")
+        return None
+
+
+def create_organized_folders(base_path, is_playlist=False, playlist_info=None, video_info=None, file_format='mp4'):
     """
     Create organized folder structure for downloads.
     
     :param base_path: Base download directory
     :param is_playlist: Whether this is a playlist download
     :param playlist_info: Dictionary with playlist information
+    :param video_info: Dictionary with video information
+    :param file_format: Video or audio format ('mp4' or 'mp3')
     :return: Path where files should be downloaded
     """
     base_path = Path(base_path)
     
-    # Create main folders
-    videos_folder = base_path / "videos"
-    playlists_folder = base_path / "playlists"
+    # Create format-specific base folders
+    format_folder = base_path / file_format.lower()
+    videos_folder = format_folder / "videos"
+    playlists_folder = format_folder / "playlists"
     
     # Ensure base folders exist
     videos_folder.mkdir(parents=True, exist_ok=True)
@@ -102,8 +147,15 @@ def create_organized_folders(base_path, is_playlist=False, playlist_info=None):
         playlist_folder.mkdir(parents=True, exist_ok=True)
         
         return playlist_folder
+    elif video_info:
+        # Create video-specific folder
+        video_title = sanitize_filename(video_info['title'])
+        video_folder = videos_folder / video_title
+        video_folder.mkdir(parents=True, exist_ok=True)
+        
+        return video_folder
     else:
-        # Single video goes to videos folder
+        # Fallback to videos folder if no info is available
         return videos_folder
 
 
@@ -133,6 +185,7 @@ def download_video(
     # Handle folder organization
     final_output_path = output_path
     playlist_info = None
+    video_info = None
     
     if organize_folders:
         # Extract base directory from output path
@@ -145,9 +198,21 @@ def download_video(
             playlist_info = get_playlist_info(url)
             if playlist_info:
                 print(f"Found playlist: '{playlist_info['title']}' by {playlist_info['uploader']} ({playlist_info['entry_count']} videos)")
+        else:
+            # Get video info for single video
+            print("Retrieving video information...")
+            video_info = get_video_info(url)
+            if video_info:
+                print(f"Found video: '{video_info['title']}' by {video_info['uploader']}")
         
         # Create organized folder structure
-        download_folder = create_organized_folders(base_dir, is_playlist, playlist_info)
+        download_folder = create_organized_folders(
+            base_dir, 
+            is_playlist, 
+            playlist_info, 
+            video_info, 
+            file_format
+        )
         final_output_path = str(download_folder / filename_template)
         
         print(f"Downloads will be saved to: {download_folder}")
