@@ -2,10 +2,109 @@
 import yt_dlp
 from yt_dlp.utils import DownloadError
 import logging
+import os
+import re
+from pathlib import Path
+
 
 # Configure logging for error reporting
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+def sanitize_filename(filename):
+    """
+    Sanitize a filename by removing or replacing invalid characters.
+    
+    :param filename: The original filename
+    :return: A sanitized filename safe for use in file systems
+    """
+    # Remove or replace invalid characters for Windows/Unix file systems
+    invalid_chars = r'[<>:"/\|?*]'
+    sanitized = re.sub(invalid_chars, '_', filename)
+    
+    # Remove leading/trailing spaces and dots
+    sanitized = sanitized.strip(' .')
+    
+    # Limit length to avoid filesystem issues
+    if len(sanitized) > 200:
+        sanitized = sanitized[:200].strip()
+    
+    return sanitized if sanitized else "Unknown"
+
+
+def get_playlist_info(url):
+    """
+    Extract playlist information without downloading.
+    
+    :param url: The playlist URL
+    :return: Dictionary with playlist info (title, uploader, count, etc.)
+    """
+    ydl_opts = {
+        'extract_flat': True,  # Don't extract individual video info
+        'quiet': True,  # Suppress output
+    }
+    
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            
+            if info is None:
+                return None
+                
+            # Check if it's actually a playlist
+            if info.get('_type') != 'playlist':
+                return None
+                
+            return {
+                'title': info.get('title', 'Unknown Playlist'),
+                'uploader': info.get('uploader', 'Unknown'),
+                'description': info.get('description', ''),
+                'entry_count': len(info.get('entries', [])),
+                'id': info.get('id', ''),
+                'webpage_url': info.get('webpage_url', url)
+            }
+    except Exception as e:
+        print(f"Warning: Could not extract playlist info: {e}")
+        return None
+
+
+def create_organized_folders(base_path, is_playlist=False, playlist_info=None):
+    """
+    Create organized folder structure for downloads.
+    
+    :param base_path: Base download directory
+    :param is_playlist: Whether this is a playlist download
+    :param playlist_info: Dictionary with playlist information
+    :return: Path where files should be downloaded
+    """
+    base_path = Path(base_path)
+    
+    # Create main folders
+    videos_folder = base_path / "videos"
+    playlists_folder = base_path / "playlists"
+    
+    # Ensure base folders exist
+    videos_folder.mkdir(parents=True, exist_ok=True)
+    playlists_folder.mkdir(parents=True, exist_ok=True)
+    
+    if is_playlist and playlist_info:
+        # Create playlist-specific folder
+        playlist_title = sanitize_filename(playlist_info['title'])
+        uploader = sanitize_filename(playlist_info.get('uploader', 'Unknown'))
+        
+        # Create folder name with uploader if available
+        if uploader and uploader != 'Unknown':
+            folder_name = f"{uploader} - {playlist_title}"
+        else:
+            folder_name = playlist_title
+            
+        playlist_folder = playlists_folder / folder_name
+        playlist_folder.mkdir(parents=True, exist_ok=True)
+        
+        return playlist_folder
+    else:
+        # Single video goes to videos folder
+        return videos_folder
 
 
 def download_video(
@@ -16,6 +115,7 @@ def download_video(
     is_playlist=False,
     progress_hooks=None,
     skip_errors=True,
+    organize_folders=True,
 ):
     """
     Downloads a video or playlist from a given URL with specified options.
@@ -27,9 +127,33 @@ def download_video(
     :param is_playlist: True to download a playlist, False for a single video.
     :param progress_hooks: A list of functions to be called on download progress.
     :param skip_errors: If True, skip individual videos that fail instead of aborting.
+    :param organize_folders: Whether to organize downloads into folders.
     """
+    
+    # Handle folder organization
+    final_output_path = output_path
+    playlist_info = None
+    
+    if organize_folders:
+        # Extract base directory from output path
+        base_dir = os.path.dirname(output_path) if "/" in output_path or "\\" in output_path else "."
+        filename_template = os.path.basename(output_path)
+        
+        # Get playlist info if it's a playlist
+        if is_playlist:
+            print("Retrieving playlist information...")
+            playlist_info = get_playlist_info(url)
+            if playlist_info:
+                print(f"Found playlist: '{playlist_info['title']}' by {playlist_info['uploader']} ({playlist_info['entry_count']} videos)")
+        
+        # Create organized folder structure
+        download_folder = create_organized_folders(base_dir, is_playlist, playlist_info)
+        final_output_path = str(download_folder / filename_template)
+        
+        print(f"Downloads will be saved to: {download_folder}")
+    
     ydl_opts = {
-        "outtmpl": output_path,
+        "outtmpl": final_output_path,
         "noplaylist": not is_playlist,
         "postprocessors": [],
         "progress_hooks": progress_hooks or [],
