@@ -6,10 +6,10 @@ import os
 import re
 from pathlib import Path
 
+
 # Configure logging for error reporting
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
 
 def sanitize_filename(filename):
     """
