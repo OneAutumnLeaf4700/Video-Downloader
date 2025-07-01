@@ -12,8 +12,6 @@ A simple yet powerful video downloader with a graphical user interface built usi
 
 ## Screenshots
 
-> **Tip:** Place your screenshots in the `docs/screenshots/` folder. Replace the placeholder images below with your own!
-
 ### Main Window
 ![Main Window](docs/screenshots/main_window.png)
 
