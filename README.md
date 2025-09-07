@@ -12,8 +12,6 @@ A simple yet powerful video downloader with a graphical user interface built usi
 
 ## Screenshots
 
-> **Tip:** Place your screenshots in the `docs/screenshots/` folder. Replace the placeholder images below with your own!
-
 ### Main Window
 ![Main Window](docs/screenshots/main_window.png)
 
@@ -133,8 +131,6 @@ This application supports 100+ video hosting sites through yt-dlp, including:
 - **macOS**: macOS app bundle with proper code signing support
 - **Linux**: AppImage and native package support
 - **Universal**: Single codebase runs on all platforms
-
- 
 
 ### Performance Optimization
 - **Efficient Downloads**: Optimized download strategies and error handling
