@@ -92,6 +92,9 @@ class MainWindow(QMainWindow):
         resolution_layout.addWidget(resolution_label)
         resolution_layout.addWidget(self.resolution_combo)
         format_res_layout.addLayout(resolution_layout)
+        
+        # Store reference to resolution label for later use
+        self.resolution_label = resolution_label
 
         # Add some stretch to keep the dropdowns from expanding too much
         format_res_layout.addStretch()
@@ -168,16 +171,14 @@ class MainWindow(QMainWindow):
 
     def on_format_changed(self, format_text):
         """Enable/disable resolution combo box based on format selection"""
+        print(f"DEBUG: Format changed to: {format_text}")
         is_video = format_text.lower() == "mp4"
+        print(f"DEBUG: Is video format: {is_video}")
+        
         self.resolution_combo.setEnabled(is_video)
         self.resolution_combo.setVisible(is_video)
-        # Find the resolution label by traversing the layout
-        for i in range(self.resolution_combo.parent().layout().count()):
-            item = self.resolution_combo.parent().layout().itemAt(i)
-            if item and item.widget() and isinstance(item.widget(), QLabel):
-                if "Resolution" in item.widget().text():
-                    item.widget().setVisible(is_video)
-                    break
+        self.resolution_label.setVisible(is_video)
+        print(f"DEBUG: Resolution label visible: {is_video}")
 
     def start_download(self):
         """Add download to the multi-threaded queue."""
