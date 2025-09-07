@@ -28,16 +28,16 @@ class DownloadTask:
 
 
 class DownloadQueueManager:
-    """Manages a queue of download tasks and processes them sequentially."""
+    """Manages a queue of download tasks and processes them with multiple worker threads."""
     
-    def __init__(self, download_function: Callable):
+    def __init__(self, download_function: Callable, max_workers: int = 3):
         self.download_function = download_function
         self.task_queue = Queue()
         self.active_tasks = {}  # id -> DownloadTask
         self.completed_tasks = []
-        self.current_task = None
         self.is_running = False
-        self.worker_thread = None
+        self.worker_threads = []
+        self.max_workers = max_workers
         self.lock = threading.Lock()
         
         # Callbacks
@@ -104,19 +104,30 @@ class DownloadQueueManager:
             }
     
     def start_processing(self):
-        """Start processing the download queue."""
+        """Start processing the download queue with multiple worker threads."""
         if self.is_running:
             return
             
         self.is_running = True
-        self.worker_thread = threading.Thread(target=self._process_queue, daemon=True)
-        self.worker_thread.start()
+        
+        # Create and start worker threads
+        for i in range(self.max_workers):
+            worker_thread = threading.Thread(
+                target=self._process_queue, 
+                daemon=True,
+                name=f"DownloadWorker-{i+1}"
+            )
+            worker_thread.start()
+            self.worker_threads.append(worker_thread)
     
     def stop_processing(self):
         """Stop processing the download queue."""
         self.is_running = False
-        if self.worker_thread:
-            self.worker_thread.join()
+        
+        # Wait for all worker threads to finish
+        for worker_thread in self.worker_threads:
+            worker_thread.join()
+        self.worker_threads.clear()
     
     def clear_completed(self):
         """Remove all completed and failed tasks from memory."""
@@ -141,7 +152,6 @@ class DownloadQueueManager:
                 # Update task status
                 with self.lock:
                     task.status = DownloadStatus.DOWNLOADING
-                    self.current_task = task
                 
                 # Notify task started
                 if self.on_task_started:
@@ -185,8 +195,6 @@ class DownloadQueueManager:
                 finally:
                     # Mark task as done
                     self.task_queue.task_done()
-                    with self.lock:
-                        self.current_task = None
                         
             except Exception:
                 # Timeout or other error - continue processing

@@ -1,18 +1,2 @@
-# requirements.txt 
-
-# Core dependencies
 PyQt5>=5.15.0
 yt-dlp>=2023.1.6
-
-# Testing dependencies
-pytest>=7.0.0
-pytest-qt>=4.0.0
-pytest-mock>=3.0.0
-
-# Development dependencies
-flake8>=6.0.0
-black>=23.0.0
-mypy>=1.0.0
-
-# Optional dependencies for packaging
-PyInstaller>=5.0.0

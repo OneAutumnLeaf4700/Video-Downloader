@@ -30,20 +30,9 @@ def read_requirements():
                         requirements.append(line)
     return requirements
 
-# Core requirements (excluding development dependencies)
 core_requirements = [
     'PyQt5>=5.15.0',
     'yt-dlp>=2023.1.6'
-]
-
-# Development requirements
-dev_requirements = [
-    'pytest>=7.0.0',
-    'pytest-qt>=4.0.0',
-    'pytest-mock>=3.0.0',
-    'flake8>=6.0.0',
-    'black>=23.0.0',
-    'mypy>=1.0.0'
 ]
 
 setup(
@@ -69,13 +58,12 @@ setup(
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
         "Operating System :: OS Independent",
+        "Operating System :: Microsoft :: Windows",
+        "Operating System :: MacOS",
+        "Operating System :: POSIX :: Linux",
     ],
     python_requires=">=3.8",
     install_requires=core_requirements,
-    extras_require={
-        "dev": dev_requirements,
-        "packaging": ["PyInstaller>=5.0.0"],
-    },
     entry_points={
         "console_scripts": [
             "video-downloader=gui.app:run_app",

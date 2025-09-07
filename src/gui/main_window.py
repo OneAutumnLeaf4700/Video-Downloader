@@ -109,6 +109,15 @@ class MainWindow(QMainWindow):
         progress_layout.addWidget(self.progress_bar)
         layout.addLayout(progress_layout)
 
+        # Download Queue Display
+        queue_layout = QVBoxLayout()
+        queue_label = QLabel("Download Queue:")
+        self.queue_list = QListWidget()
+        self.queue_list.setMaximumHeight(100)
+        queue_layout.addWidget(queue_label)
+        queue_layout.addWidget(self.queue_list)
+        layout.addLayout(queue_layout)
+
         # Status Label
         self.status_label = QLabel("")
         self.status_label.setAlignment(Qt.AlignCenter)
@@ -117,8 +126,20 @@ class MainWindow(QMainWindow):
         # Add stretch to push everything to the top
         layout.addStretch()
 
-        self.thread = None
-        self.worker = None
+        # Initialize download queue manager
+        self.queue_manager = DownloadQueueManager(download_video, max_workers=3)
+        self.setup_queue_callbacks()
+        
+        # Download tracking
+        self.active_downloads = {}  # task_id -> task info
+
+    def setup_queue_callbacks(self):
+        """Setup callbacks for the download queue manager."""
+        self.queue_manager.on_task_started = self.on_task_started
+        self.queue_manager.on_task_progress = self.on_task_progress
+        self.queue_manager.on_task_completed = self.on_task_completed
+        self.queue_manager.on_task_failed = self.on_task_failed
+        self.queue_manager.on_queue_empty = self.on_queue_empty
 
     def show_error_dialog(self, message):
         """Displays a critical error message in a dialog box."""
@@ -149,7 +170,7 @@ class MainWindow(QMainWindow):
                     break
 
     def start_download(self):
-        """Initiate the download process in a background thread."""
+        """Add download to the multi-threaded queue."""
         url = self.url_input.text().strip()
         if not url:
             self.show_error_dialog("Please enter a video or playlist URL.")
@@ -174,49 +195,87 @@ class MainWindow(QMainWindow):
             "is_playlist": self.playlist_check.isChecked(),
         }
 
-        # Setup and start the background worker
-        self.thread = QThread()
-        self.worker = DownloaderWorker(download_video, url, options)
-        self.worker.moveToThread(self.thread)
-
-        # Connect signals and slots
-        self.thread.started.connect(self.worker.run)
-        self.worker.finished.connect(self.on_download_finished)
-        self.worker.error.connect(self.on_download_error)
-        self.worker.progress.connect(self.update_progress)
-
-        self.thread.start()
+        # Add to queue
+        task_id = self.queue_manager.add_download(url, options)
+        self.active_downloads[task_id] = {
+            "url": url,
+            "options": options,
+            "started": False
+        }
 
         # Update UI
         self.download_button.setEnabled(False)
-        self.status_label.setText("Download in progress...")
+        self.status_label.setText("Download added to queue...")
         QApplication.setOverrideCursor(Qt.WaitCursor)
-        self.progress_bar.setValue(0)
+        self.update_queue_display()
 
-    def on_download_finished(self):
-        """Called when the download is successfully completed."""
-        self.status_label.setText("Download finished successfully!")
+    def on_task_started(self, task):
+        """Called when a download task starts."""
+        if task.id in self.active_downloads:
+            self.active_downloads[task.id]["started"] = True
+            self.status_label.setText(f"Downloading: {task.url[:50]}...")
+            self.update_queue_display()
+
+    def on_task_progress(self, task):
+        """Called when a download task progress updates."""
+        if task.id in self.active_downloads:
+            self.progress_bar.setValue(int(task.progress))
+
+    def on_task_completed(self, task):
+        """Called when a download task completes successfully."""
+        if task.id in self.active_downloads:
+            del self.active_downloads[task.id]
+            self.status_label.setText("Download completed successfully!")
+            self.progress_bar.setValue(100)
+            self.download_button.setEnabled(True)
+            QApplication.restoreOverrideCursor()
+            self.update_queue_display()
+
+    def on_task_failed(self, task):
+        """Called when a download task fails."""
+        if task.id in self.active_downloads:
+            del self.active_downloads[task.id]
+            self.show_error_dialog(f"Download failed: {task.error_message}")
+            self.status_label.setText("Download failed. Please try again.")
+            self.download_button.setEnabled(True)
+            QApplication.restoreOverrideCursor()
+            self.update_queue_display()
+
+    def on_queue_empty(self):
+        """Called when the download queue is empty."""
+        self.status_label.setText("All downloads completed!")
         self.progress_bar.setValue(100)
         self.download_button.setEnabled(True)
         QApplication.restoreOverrideCursor()
-        self.thread.quit()
-        self.thread.wait()
+        self.update_queue_display()
 
-    def on_download_error(self, error_message):
-        """Called when an error occurs during download."""
-        self.show_error_dialog(error_message)
-        self.status_label.setText("Download failed. Please try again.")
-        self.download_button.setEnabled(True)
-        QApplication.restoreOverrideCursor()
-        self.thread.quit()
-        self.thread.wait()
-
-    def update_progress(self, data):
-        """Update the progress bar based on yt-dlp's output."""
-        if data["status"] == "downloading":
-            total_bytes = data.get("total_bytes") or data.get("total_bytes_estimate", 0)
-            if total_bytes > 0:
-                percentage = (data["downloaded_bytes"] / total_bytes) * 100
-                self.progress_bar.setValue(int(percentage))
-        elif data["status"] == "finished":
-            self.progress_bar.setValue(100)
+    def update_queue_display(self):
+        """Update the download queue display."""
+        self.queue_list.clear()
+        
+        # Get all tasks from queue manager
+        all_tasks = self.queue_manager.get_all_tasks()
+        queue_info = self.queue_manager.get_queue_info()
+        
+        # Add active downloads
+        for task_id, task in all_tasks.items():
+            if task.status == DownloadStatus.DOWNLOADING:
+                item_text = f"🔄 Downloading: {task.url[:40]}... ({task.progress:.1f}%)"
+            elif task.status == DownloadStatus.PENDING:
+                item_text = f"⏳ Queued: {task.url[:40]}..."
+            elif task.status == DownloadStatus.COMPLETED:
+                item_text = f"✅ Completed: {task.url[:40]}..."
+            elif task.status == DownloadStatus.FAILED:
+                item_text = f"❌ Failed: {task.url[:40]}..."
+            else:
+                item_text = f"📋 {task.url[:40]}..."
+            
+            item = QListWidgetItem(item_text)
+            self.queue_list.addItem(item)
+        
+        # Update status with queue info
+        if queue_info["total"] > 0:
+            status_text = f"Queue: {queue_info['downloading']} downloading, {queue_info['pending']} pending"
+            if queue_info["failed"] > 0:
+                status_text += f", {queue_info['failed']} failed"
+            self.status_label.setText(status_text)
