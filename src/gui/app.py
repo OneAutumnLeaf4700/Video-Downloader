@@ -1,16 +1,29 @@
 # src/gui/app.py
 import sys
 import os
-from PyQt5.QtWidgets import QApplication
-from .main_window import MainWindow
+from PyQt6.QtWidgets import QApplication
+
+# Support running both as a package (python -m) and as a top-level script (PyInstaller)
+try:  # Relative import when package context is available
+    from .main_window import MainWindow
+except Exception:  # Fallbacks for script/frozen contexts
+    try:
+        from gui.main_window import MainWindow  # type: ignore
+    except Exception:
+        import importlib
+        MainWindow = importlib.import_module("main_window").MainWindow  # type: ignore
 
 
 def run_app():
     """Initialize and run the GUI application"""
     app = QApplication(sys.argv)
 
-    # Load and apply the stylesheet
-    style_path = os.path.join(os.path.dirname(__file__), "style.qss")
+    # Load and apply the stylesheet (handle PyInstaller one-file via _MEIPASS)
+    if getattr(sys, 'frozen', False):
+        base_path = getattr(sys, '_MEIPASS', os.path.dirname(__file__))
+        style_path = os.path.join(base_path, "gui", "style.qss")
+    else:
+        style_path = os.path.join(os.path.dirname(__file__), "style.qss")
     try:
         with open(style_path, "r") as f:
             app.setStyleSheet(f.read())
@@ -30,7 +43,7 @@ def run_app():
 
     window = MainWindow()
     window.show()
-    return app.exec_()
+    return app.exec()
 
 
 if __name__ == "__main__":

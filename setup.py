@@ -31,7 +31,7 @@ def read_requirements():
     return requirements
 
 core_requirements = [
-    'PyQt5>=5.15.0',
+    'PyQt6>=6.5',
     'yt-dlp>=2023.1.6'
 ]
 

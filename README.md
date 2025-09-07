@@ -6,7 +6,7 @@
 [![Python](https://img.shields.io/badge/python-3.8%2B-blue?logo=python)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-A simple yet powerful video downloader with a graphical user interface built using Python and PyQt5. This tool allows you to download videos and playlists from hundreds of websites.
+A simple yet powerful video downloader with a graphical user interface built using Python and PyQt6. This tool allows you to download videos and playlists from hundreds of websites.
 
 ---
 
@@ -29,7 +29,7 @@ A simple yet powerful video downloader with a graphical user interface built usi
 
 - **Multi-threaded Downloads**: Download multiple videos simultaneously with configurable worker threads
 - **Cross-platform Support**: Works on Windows, macOS, and Linux
-- **Easy-to-Use GUI**: A clean and modern interface built with PyQt5
+- **Easy-to-Use GUI**: A clean and modern interface built with PyQt6
 - **Multiple Site Support**: Powered by `yt-dlp`, supports 100+ video hosting sites
 - **Format Selection**: Download videos as `MP4` or extract audio as `MP3`
 - **Resolution Options**: Choose your preferred video quality (1080p, 720p, etc.)
@@ -38,7 +38,7 @@ A simple yet powerful video downloader with a graphical user interface built usi
 - **Real-time Progress**: Progress bars and queue display keep you updated
 - **Organized Storage**: Automatic folder organization by format and content type
 - **Error Handling**: Robust error handling with retry mechanisms
-- **Comprehensive Testing**: Full test suite with pytest, flake8, Black, and mypy
+ 
 
 ## Setup and Usage
 
@@ -67,44 +67,30 @@ Follow these steps to get the application running on your local machine.
 
 4. **Run the application**:
    ```bash
+   python -m venv venv
+   .\\venv\\Scripts\\activate
+   pip install -r requirements.txt
    python main.py
    ```
 
-### Option 2: Using pip
+### Option 2: Pre-built Executable (Windows)
+
+- After building (see below), run `dist\\VideoDownloader.exe`.
+
+### Option 3: From Releases
+
+Download the latest Windows executable from the Releases page.
+
+## Build single-file executable (Windows)
 
 ```bash
-pip install video-downloader
-video-downloader-gui
+py -m venv venv
+.\\venv\\Scripts\\activate
+pip install -r requirements.txt
+pip install pyinstaller
+pyinstaller --noconfirm --onefile --windowed --name VideoDownloader --add-data "src\\gui\\style.qss;gui" src\\gui\\app.py
+# Output at: dist\\VideoDownloader.exe
 ```
-
-### Option 3: Pre-built Executables
-
-Download the latest release from the [Releases page](https://github.com/yourusername/Video-Downloader/releases) for your platform.
-
-## Development Setup
-
-If you want to contribute or modify the code:
-
-1. **Install development dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   pip install -e .[dev]
-   ```
-
-2. **Run tests**:
-   ```bash
-   python run_tests.py
-   ```
-
-3. **Run linting**:
-   ```bash
-   python run_tests.py --lint-only
-   ```
-
-4. **Build executable**:
-   ```bash
-   python build.py
-   ```
 
 ## How to Use
 
@@ -148,11 +134,7 @@ This application supports 100+ video hosting sites through yt-dlp, including:
 - **Linux**: AppImage and native package support
 - **Universal**: Single codebase runs on all platforms
 
-### Quality Assurance
-- **Comprehensive Testing**: Unit tests, integration tests, and GUI tests
-- **Code Quality**: Automated linting with flake8 and formatting with Black
-- **Type Safety**: Full type checking with mypy
-- **CI/CD**: Automated testing and building across all platforms
+ 
 
 ### Performance Optimization
 - **Efficient Downloads**: Optimized download strategies and error handling

@@ -1,6 +1,6 @@
 # src/gui/main_window.py
 import os
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QMainWindow,
     QWidget,
     QVBoxLayout,
@@ -20,11 +20,19 @@ from PyQt5.QtWidgets import (
     QGroupBox,
     QTextEdit,
 )
-from PyQt5.QtCore import Qt, QThread, QTimer
-from PyQt5.QtGui import QIcon
+from PyQt6.QtCore import Qt, QObject, pyqtSignal
+from PyQt6.QtGui import QIcon
 from .worker import DownloaderWorker
-from src.video_downloader.downloader import download_video
-from src.video_downloader.queue_manager import DownloadQueueManager, DownloadStatus
+from video_downloader.downloader import download_video
+from video_downloader.queue_manager import DownloadQueueManager, DownloadStatus
+
+
+class _UiBridge(QObject):
+    task_started = pyqtSignal(object)
+    task_progress = pyqtSignal(object)
+    task_completed = pyqtSignal(object)
+    task_failed = pyqtSignal(object)
+    queue_empty = pyqtSignal()
 
 
 class MainWindow(QMainWindow):
@@ -120,7 +128,7 @@ class MainWindow(QMainWindow):
 
         # Status Label
         self.status_label = QLabel("")
-        self.status_label.setAlignment(Qt.AlignCenter)
+        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.status_label)
 
         # Add stretch to push everything to the top
@@ -128,6 +136,13 @@ class MainWindow(QMainWindow):
 
         # Initialize download queue manager
         self.queue_manager = DownloadQueueManager(download_video, max_workers=3)
+        # Bridge signals to ensure thread-safe GUI updates
+        self._bridge = _UiBridge()
+        self._bridge.task_started.connect(self.on_task_started)
+        self._bridge.task_progress.connect(self.on_task_progress)
+        self._bridge.task_completed.connect(self.on_task_completed)
+        self._bridge.task_failed.connect(self.on_task_failed)
+        self._bridge.queue_empty.connect(self.on_queue_empty)
         self.setup_queue_callbacks()
         
         # Download tracking
@@ -135,20 +150,15 @@ class MainWindow(QMainWindow):
 
     def setup_queue_callbacks(self):
         """Setup callbacks for the download queue manager."""
-        self.queue_manager.on_task_started = self.on_task_started
-        self.queue_manager.on_task_progress = self.on_task_progress
-        self.queue_manager.on_task_completed = self.on_task_completed
-        self.queue_manager.on_task_failed = self.on_task_failed
-        self.queue_manager.on_queue_empty = self.on_queue_empty
+        self.queue_manager.on_task_started = lambda task: self._bridge.task_started.emit(task)
+        self.queue_manager.on_task_progress = lambda task: self._bridge.task_progress.emit(task)
+        self.queue_manager.on_task_completed = lambda task: self._bridge.task_completed.emit(task)
+        self.queue_manager.on_task_failed = lambda task: self._bridge.task_failed.emit(task)
+        self.queue_manager.on_queue_empty = lambda: self._bridge.queue_empty.emit()
 
     def show_error_dialog(self, message):
         """Displays a critical error message in a dialog box."""
-        dialog = QMessageBox()
-        dialog.setIcon(QMessageBox.Critical)
-        dialog.setText("An Error Occurred")
-        dialog.setInformativeText(message)
-        dialog.setWindowTitle("Error")
-        dialog.exec_()
+        QMessageBox.critical(self, "An Error Occurred", message)
 
     def browse_output_directory(self):
         """Open a dialog to select the output directory."""
@@ -171,13 +181,21 @@ class MainWindow(QMainWindow):
 
     def start_download(self):
         """Add download to the multi-threaded queue."""
+        print("DEBUG: start_download() called")
+        
         url = self.url_input.text().strip()
+        print(f"DEBUG: URL = '{url}'")
+        
         if not url:
+            print("DEBUG: No URL provided, showing error dialog")
             self.show_error_dialog("Please enter a video or playlist URL.")
             return
 
         output_dir = self.output_path_input.text().strip()
+        print(f"DEBUG: Output directory = '{output_dir}'")
+        
         if not os.path.isdir(output_dir):
+            print(f"DEBUG: Output directory doesn't exist: {output_dir}")
             self.show_error_dialog(
                 f"The selected output directory does not exist:\n{output_dir}"
             )
@@ -194,20 +212,35 @@ class MainWindow(QMainWindow):
             ),
             "is_playlist": self.playlist_check.isChecked(),
         }
+        print(f"DEBUG: Download options = {options}")
 
-        # Add to queue
-        task_id = self.queue_manager.add_download(url, options)
-        self.active_downloads[task_id] = {
-            "url": url,
-            "options": options,
-            "started": False
-        }
+        try:
+            # Add to queue
+            print("DEBUG: Adding download to queue manager...")
+            task_id = self.queue_manager.add_download(url, options)
+            print(f"DEBUG: Task ID = {task_id}")
+            
+            self.active_downloads[task_id] = {
+                "url": url,
+                "options": options,
+                "started": False
+            }
 
-        # Update UI
-        self.download_button.setEnabled(False)
-        self.status_label.setText("Download added to queue...")
-        QApplication.setOverrideCursor(Qt.WaitCursor)
-        self.update_queue_display()
+            # Update UI
+            print("DEBUG: Updating UI...")
+            self.download_button.setEnabled(False)
+            self.status_label.setText("Download added to queue...")
+            QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+            self.update_queue_display()
+            print("DEBUG: start_download() completed successfully")
+            
+        except Exception as e:
+            print(f"DEBUG: Exception in start_download(): {e}")
+            import traceback
+            traceback.print_exc()
+            self.show_error_dialog(f"Failed to start download: {e}")
+            self.download_button.setEnabled(True)
+            QApplication.restoreOverrideCursor()
 
     def on_task_started(self, task):
         """Called when a download task starts."""
