@@ -1,6 +1,8 @@
 # src/gui/main_window.py
 import os
 import re
+import subprocess
+import platform
 from PyQt6.QtWidgets import (
     QMainWindow,
     QWidget,
@@ -141,6 +143,13 @@ class MainWindow(QMainWindow):
         self.status_label = QLabel("")
         self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.status_label)
+        
+        # Open Folder Button (initially hidden)
+        self.open_folder_button = QPushButton("📁 Open Download Folder")
+        self.open_folder_button.setFixedHeight(35)
+        self.open_folder_button.clicked.connect(self.open_download_folder)
+        self.open_folder_button.setVisible(False)
+        layout.addWidget(self.open_folder_button)
 
         # Add stretch to push everything to the top
         layout.addStretch()
@@ -158,6 +167,7 @@ class MainWindow(QMainWindow):
         
         # Download tracking
         self.active_downloads = {}  # task_id -> task info
+        self.last_download_path = None  # Store last download location
 
     def setup_queue_callbacks(self):
         """Setup callbacks for the download queue manager."""
@@ -197,6 +207,23 @@ class MainWindow(QMainWindow):
             self.status_label.setText("✓ Valid URL detected")
         else:
             self.status_label.setText("⚠ URL may not be supported")
+
+    def open_download_folder(self):
+        """Open the download folder in the system file manager."""
+        if not self.last_download_path or not os.path.exists(self.last_download_path):
+            self.show_error_dialog("Download folder not found or not available.")
+            return
+        
+        try:
+            system = platform.system().lower()
+            if system == "windows":
+                os.startfile(self.last_download_path)
+            elif system == "darwin":  # macOS
+                subprocess.run(["open", self.last_download_path])
+            else:  # Linux and others
+                subprocess.run(["xdg-open", self.last_download_path])
+        except Exception as e:
+            self.show_error_dialog(f"Could not open folder: {e}")
 
     def browse_output_directory(self):
         """Open a dialog to select the output directory."""
@@ -344,6 +371,16 @@ class MainWindow(QMainWindow):
             self.download_button.setEnabled(True)
             QApplication.restoreOverrideCursor()
             self.update_queue_display()
+            
+            # Store the download path for "Open Folder" button
+            if hasattr(task, 'result_path') and task.result_path:
+                self.last_download_path = os.path.dirname(task.result_path)
+            else:
+                # Fallback: use the output directory
+                self.last_download_path = self.output_path_input.text().strip()
+            
+            # Show the "Open Folder" button
+            self.open_folder_button.setVisible(True)
 
     def on_task_failed(self, task):
         """Called when a download task fails."""
