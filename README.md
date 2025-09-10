@@ -86,8 +86,16 @@ py -m venv venv
 .\\venv\\Scripts\\activate
 pip install -r requirements.txt
 pip install pyinstaller
-pyinstaller --noconfirm --onefile --windowed --name VideoDownloader --add-data "src\\gui\\style.qss;gui" src\\gui\\app.py
-# Output at: dist\\VideoDownloader.exe
+
+# Option A: Use the build script (recommended)
+py build.py           # GUI build
+py build.py --console # Console build
+
+# Option B: Call PyInstaller directly with the spec files
+pyinstaller packaging\\pyinstaller\\gui.spec      # GUI build
+pyinstaller packaging\\pyinstaller\\console.spec   # Console build
+
+# Output at: dist\\VideoDownloader(.exe)
 ```
 
 ## How to Use
