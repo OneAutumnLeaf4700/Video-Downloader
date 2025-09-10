@@ -236,17 +236,21 @@ def download_video(
             }
         )
     else:  # For video formats like mp4, webm, etc.
-        format_string = "bestvideo"
+        # Prefer MP4-compatible streams and merge to a single MP4
         if resolution:
-            format_string += f"[height<={resolution}]"
-        format_string += "+bestaudio/best"
+            format_string = (
+                f"bv*[ext=mp4][height<={resolution}]+ba[ext=m4a]/b[ext=mp4]/b"
+            )
+        else:
+            format_string = "bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]/b"
         ydl_opts["format"] = format_string
 
-        # Add a postprocessor to convert to the desired format
+        # Ensure final output is a single MP4 (merge/remux instead of re-encode)
+        ydl_opts["merge_output_format"] = "mp4"
         ydl_opts["postprocessors"].append(
             {
-                "key": "FFmpegVideoConvertor",
-                "preferedformat": file_format,
+                "key": "FFmpegVideoRemuxer",
+                "preferedformat": "mp4",
             }
         )
 
