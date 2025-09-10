@@ -23,8 +23,8 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QObject, pyqtSignal
 from PyQt6.QtGui import QIcon
 from .worker import DownloaderWorker
-from video_downloader.downloader import download_video
-from video_downloader.queue_manager import DownloadQueueManager, DownloadStatus
+from ..video_downloader.downloader import download_video
+from ..video_downloader.queue_manager import DownloadQueueManager, DownloadStatus
 
 
 class _UiBridge(QObject):
@@ -196,11 +196,15 @@ class MainWindow(QMainWindow):
         print(f"DEBUG: Output directory = '{output_dir}'")
         
         if not os.path.isdir(output_dir):
-            print(f"DEBUG: Output directory doesn't exist: {output_dir}")
-            self.show_error_dialog(
-                f"The selected output directory does not exist:\n{output_dir}"
-            )
-            return
+            print(f"DEBUG: Output directory doesn't exist, creating: {output_dir}")
+            try:
+                os.makedirs(output_dir, exist_ok=True)
+            except Exception as e:
+                print(f"DEBUG: Failed to create output directory: {e}")
+                self.show_error_dialog(
+                    f"Failed to create output directory:\n{output_dir}\n\n{e}"
+                )
+                return
 
         # Prepare download options
         options = {
