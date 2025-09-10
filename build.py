@@ -45,7 +45,7 @@ def check_dependencies():
         run_command([sys.executable, "-m", "pip", "install", "PyInstaller"])
     
     # Check if all required packages are installed
-    required_packages = ["PyQt5", "yt-dlp"]
+    required_packages = ["PyQt6", "yt-dlp"]
     for package in required_packages:
         try:
             __import__(package)
@@ -77,34 +77,18 @@ def build_executable():
     """Build the executable using PyInstaller."""
     print("Building executable...")
     
-    system = platform.system().lower()
-    
-    if system == "windows":
-        # Windows build
-        cmd = [
-            "pyinstaller",
-            "--clean",
-            "--noconfirm",
-            "video_downloader.spec"
-        ]
-    elif system == "darwin":
-        # macOS build
-        cmd = [
-            "pyinstaller",
-            "--clean",
-            "--noconfirm",
-            "--windowed",
-            "video_downloader.spec"
-        ]
-    else:
-        # Linux build
-        cmd = [
-            "pyinstaller",
-            "--clean",
-            "--noconfirm",
-            "video_downloader.spec"
-        ]
-    
+    # Choose spec based on CLI arg: --console for console build, default GUI
+    spec_dir = Path("packaging") / "pyinstaller"
+    is_console = "--console" in sys.argv
+    spec_path = spec_dir / ("console.spec" if is_console else "gui.spec")
+
+    cmd = [
+        "pyinstaller",
+        "--clean",
+        "--noconfirm",
+        str(spec_path)
+    ]
+
     run_command(cmd)
 
 def create_installer():
