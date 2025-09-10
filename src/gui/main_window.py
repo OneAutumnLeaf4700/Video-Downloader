@@ -207,8 +207,13 @@ class MainWindow(QMainWindow):
                 return
 
         # Prepare download options
+        # Add resolution suffix for mp4 to allow multiple qualities side-by-side
+        resolution_suffix = ""
+        if self.format_combo.currentText().lower() == "mp4" and self.resolution_combo.isEnabled():
+            resolution_suffix = f"_{self.resolution_combo.currentText()}"
+
         options = {
-            "output_path": os.path.join(output_dir, "%(title)s.%(ext)s"),
+            "output_path": os.path.join(output_dir, f"%(title)s{resolution_suffix}.%(ext)s"),
             "file_format": self.format_combo.currentText().lower(),
             "resolution": (
                 self.resolution_combo.currentText().replace("p", "")
@@ -218,6 +223,36 @@ class MainWindow(QMainWindow):
             "is_playlist": self.playlist_check.isChecked(),
         }
         print(f"DEBUG: Download options = {options}")
+
+        # Check for existing file and prompt for overwrite
+        target_example = options["output_path"].replace("%(title)s", "Example").replace("%(ext)s", options["file_format"])  # illustrative
+        target_dir = os.path.dirname(options["output_path"]) or os.getcwd()
+        # We can't know the exact sanitized title yet, but we can warn if any file with same prefix exists
+        existing_same_prefix = any(
+            name.startswith("") for name in os.listdir(target_dir) if os.path.isfile(os.path.join(target_dir, name))
+        )
+
+        if os.path.exists(target_dir):
+            # If a file with exact future path exists after info extraction, yt-dlp will overwrite; add a user prompt now
+            # Build a candidate path with the known suffix
+            candidate_suffix = options["output_path"].split("%(title)s")[-1].replace("%(ext)s", options["file_format"]) if "%(title)s" in options["output_path"] else ""
+            possible_conflict = None
+            for name in os.listdir(target_dir):
+                if name.endswith(candidate_suffix):
+                    possible_conflict = os.path.join(target_dir, name)
+                    break
+
+            if possible_conflict:
+                reply = QMessageBox.question(
+                    self,
+                    "File Exists",
+                    f"A file with a similar name exists:\n{possible_conflict}\n\nReplace it?",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                    QMessageBox.StandardButton.No,
+                )
+                if reply == QMessageBox.StandardButton.No:
+                    self.status_label.setText("Download cancelled by user (existing file).")
+                    return
 
         try:
             # Add to queue
