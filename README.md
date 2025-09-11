@@ -10,19 +10,6 @@ A simple yet powerful video downloader with a graphical user interface built usi
 
 ---
 
-## Screenshots
-
-### Main Window
-![Main Window](docs/screenshots/main_window.png)
-
-### Download in Progress
-![Download Progress](docs/screenshots/progress.png)
-
-### Error Handling
-![Error Dialog](docs/screenshots/error.png)
-
----
-
 ## Features
 
 - **Multi-threaded Downloads**: Download multiple videos simultaneously with configurable worker threads
