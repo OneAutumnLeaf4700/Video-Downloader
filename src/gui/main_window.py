@@ -282,43 +282,45 @@ class MainWindow(QMainWindow):
                 if self.resolution_combo.isEnabled()
                 else None
             ),
+            "is_playlist": True,  # Always treat as playlist to handle both single videos and playlists
         }
         print(f"DEBUG: Download options = {options}")
 
-        # Check for existing file and prompt for overwrite (single video path)
-        try:
-            info = get_video_info(url)
-            if info:
-                sanitized_title = sanitize_filename(info.get("title", ""))
-                base_dir = os.path.dirname(options["output_path"]) or os.getcwd()
-                download_folder = create_organized_folders(
-                    base_path=base_dir,
-                    is_playlist=False,
-                    playlist_info=None,
-                    video_info=info,
-                    file_format=options["file_format"],
-                )
-                # Rebuild resolution suffix as used in filename
-                res_suffix = ""
-                if options["file_format"] == "mp4" and options["resolution"]:
-                    res_suffix = f"_{options['resolution']}p"
-                candidate_path = os.path.join(
-                    str(download_folder), f"{sanitized_title}{res_suffix}.{options['file_format']}"
-                )
-                if os.path.exists(candidate_path):
-                    reply = QMessageBox.question(
-                        self,
-                        "File Exists",
-                        f"A file with the same name exists:\n{candidate_path}\n\nReplace it?",
-                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                        QMessageBox.StandardButton.No,
+        # Check for existing file and prompt for overwrite (single video only)
+        if not options["is_playlist"]:
+            try:
+                info = get_video_info(url)
+                if info:
+                    sanitized_title = sanitize_filename(info.get("title", ""))
+                    base_dir = os.path.dirname(options["output_path"]) or os.getcwd()
+                    download_folder = create_organized_folders(
+                        base_path=base_dir,
+                        is_playlist=False,
+                        playlist_info=None,
+                        video_info=info,
+                        file_format=options["file_format"],
                     )
-                    if reply == QMessageBox.StandardButton.No:
-                        self.status_label.setText("Download cancelled by user (existing file).")
-                        return
-        except Exception:
-            # Non-blocking: if we fail to check, proceed without prompt
-            pass
+                    # Rebuild resolution suffix as used in filename
+                    res_suffix = ""
+                    if options["file_format"] == "mp4" and options["resolution"]:
+                        res_suffix = f"_{options['resolution']}p"
+                    candidate_path = os.path.join(
+                        str(download_folder), f"{sanitized_title}{res_suffix}.{options['file_format']}"
+                    )
+                    if os.path.exists(candidate_path):
+                        reply = QMessageBox.question(
+                            self,
+                            "File Exists",
+                            f"A file with the same name exists:\n{candidate_path}\n\nReplace it?",
+                            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                            QMessageBox.StandardButton.No,
+                        )
+                        if reply == QMessageBox.StandardButton.No:
+                            self.status_label.setText("Download cancelled by user (existing file).")
+                            return
+            except Exception:
+                # Non-blocking: if we fail to check, proceed without prompt
+                pass
 
         try:
             # Add to queue
