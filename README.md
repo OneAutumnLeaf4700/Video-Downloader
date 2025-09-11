@@ -68,9 +68,9 @@ Follow these steps to get the application running on your local machine.
    pip install -r requirements.txt
    ```
 
-4. **Run the application** (Windows one-liner):
+4. **Run the application** :
    ```powershell
-   py -m venv venv; .\\venv\\Scripts\\Activate.ps1; pip install -r requirements.txt; python main.py
+   python main.py
    ```
 
 <!-- Packaging/executables temporarily removed -->
