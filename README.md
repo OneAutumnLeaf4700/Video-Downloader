@@ -73,32 +73,7 @@ Follow these steps to get the application running on your local machine.
    py -m venv venv; .\\venv\\Scripts\\Activate.ps1; pip install -r requirements.txt; python main.py
    ```
 
-### Option 2: Pre-built Executable (Windows)
-
-- After building (see below), run `dist\\VideoDownloader.exe`.
-
-### Option 3: From Releases
-
-Download the latest Windows executable from the Releases page.
-
-## Build single-file executable (Windows)
-
-```bash
-py -m venv venv
-.\\venv\\Scripts\\activate
-pip install -r requirements.txt
-pip install pyinstaller
-
-# Option A: Use the build script (recommended)
-py build.py           # GUI build
-py build.py --console # Console build
-
-# Option B: Call PyInstaller directly with the spec files
-pyinstaller packaging\\pyinstaller\\gui.spec      # GUI build
-pyinstaller packaging\\pyinstaller\\console.spec   # Console build
-
-# Output at: dist\\VideoDownloader(.exe)
-```
+<!-- Packaging/executables temporarily removed -->
 
 ## How to Use
 
@@ -127,23 +102,3 @@ This application supports 100+ video hosting sites through yt-dlp, including:
 - Twitter
 - TikTok
 - And many more!
-
-## Technical Features
-
-### Multi-threaded Architecture
-- **Concurrent Downloads**: Download multiple videos simultaneously using configurable worker threads
-- **Queue Management**: Intelligent task queuing with priority handling
-- **Thread Safety**: Thread-safe operations with proper locking mechanisms
-- **Resource Management**: Automatic cleanup and memory management
-
-### Cross-platform Compatibility
-- **Windows**: Native Windows executable with proper GUI integration
-- **macOS**: macOS app bundle with proper code signing support
-- **Linux**: AppImage and native package support
-- **Universal**: Single codebase runs on all platforms
-
-### Performance Optimization
-- **Efficient Downloads**: Optimized download strategies and error handling
-- **Memory Management**: Proper resource cleanup and memory usage
-- **Progress Tracking**: Real-time progress updates with minimal overhead
-- **Error Recovery**: Robust error handling with automatic retry mechanisms
