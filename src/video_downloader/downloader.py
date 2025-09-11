@@ -112,51 +112,22 @@ def get_video_info(url):
 
 def create_organized_folders(base_path, is_playlist=False, playlist_info=None, video_info=None, file_format='mp4'):
     """
-    Create organized folder structure for downloads.
-    
+    Create simplified folder structure for downloads: only mp3/ or mp4/ under base.
+
     :param base_path: Base download directory
-    :param is_playlist: Whether this is a playlist download
-    :param playlist_info: Dictionary with playlist information
-    :param video_info: Dictionary with video information
+    :param is_playlist: Unused for folder structure; kept for compatibility
+    :param playlist_info: Unused for folder structure; kept for compatibility
+    :param video_info: Unused for folder structure; kept for compatibility
     :param file_format: Video or audio format ('mp4' or 'mp3')
     :return: Path where files should be downloaded
     """
     base_path = Path(base_path)
-    
-    # Create format-specific base folders
+
+    # Only create a single folder per format at the root, e.g., base/mp4 or base/mp3
     format_folder = base_path / file_format.lower()
-    videos_folder = format_folder / "videos"
-    playlists_folder = format_folder / "playlists"
-    
-    # Ensure base folders exist
-    videos_folder.mkdir(parents=True, exist_ok=True)
-    playlists_folder.mkdir(parents=True, exist_ok=True)
-    
-    if is_playlist and playlist_info:
-        # Create playlist-specific folder
-        playlist_title = sanitize_filename(playlist_info['title'])
-        uploader = sanitize_filename(playlist_info.get('uploader', 'Unknown'))
-        
-        # Create folder name with uploader if available
-        if uploader and uploader != 'Unknown':
-            folder_name = f"{uploader} - {playlist_title}"
-        else:
-            folder_name = playlist_title
-            
-        playlist_folder = playlists_folder / folder_name
-        playlist_folder.mkdir(parents=True, exist_ok=True)
-        
-        return playlist_folder
-    elif video_info:
-        # Create video-specific folder
-        video_title = sanitize_filename(video_info['title'])
-        video_folder = videos_folder / video_title
-        video_folder.mkdir(parents=True, exist_ok=True)
-        
-        return video_folder
-    else:
-        # Fallback to videos folder if no info is available
-        return videos_folder
+    format_folder.mkdir(parents=True, exist_ok=True)
+
+    return format_folder
 
 
 def download_video(
