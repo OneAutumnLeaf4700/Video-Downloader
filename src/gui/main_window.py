@@ -354,13 +354,25 @@ class MainWindow(QMainWindow):
         """Called when a download task starts."""
         if task.id in self.active_downloads:
             self.active_downloads[task.id]["started"] = True
-            self.status_label.setText(f"Downloading: {task.url[:50]}...")
+            # Show playlist position if available
+            if getattr(task, "current_index", None) and getattr(task, "total_count", None):
+                self.status_label.setText(
+                    f"Downloading ({int(task.current_index)} of {int(task.total_count)}): {task.url[:50]}..."
+                )
+            else:
+                self.status_label.setText(f"Downloading: {task.url[:50]}...")
             self.update_queue_display()
 
     def on_task_progress(self, task):
         """Called when a download task progress updates."""
         if task.id in self.active_downloads:
             self.progress_bar.setValue(int(task.progress))
+            # Update label with playlist counters if present
+            if getattr(task, "current_index", None) and getattr(task, "total_count", None):
+                title = getattr(task, "current_title", None) or task.url[:50]
+                self.status_label.setText(
+                    f"Downloading ({int(task.current_index)} of {int(task.total_count)}): {title[:50]}..."
+                )
 
     def on_task_completed(self, task):
         """Called when a download task completes successfully."""

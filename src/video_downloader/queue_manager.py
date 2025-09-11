@@ -25,6 +25,10 @@ class DownloadTask:
     progress: float = 0.0
     error_message: Optional[str] = None
     result_path: Optional[str] = None
+    # Playlist tracking (if applicable)
+    current_index: Optional[int] = None
+    total_count: Optional[int] = None
+    current_title: Optional[str] = None
 
 
 class DownloadQueueManager:
@@ -183,11 +187,17 @@ class DownloadQueueManager:
                 # Set up progress hook for this task
                 def progress_hook(data):
                     if data.get("status") == "downloading":
+                        info = data.get("info_dict", {}) or {}
+                        # Capture playlist progress if available
+                        task.current_index = info.get("playlist_index") or info.get("playlist_autonumber")
+                        task.total_count = info.get("n_entries") or info.get("playlist_count")
+                        task.current_title = info.get("title") or task.current_title
+
                         total_bytes = data.get("total_bytes") or data.get("total_bytes_estimate", 0)
                         if total_bytes > 0:
-                            task.progress = (data["downloaded_bytes"] / total_bytes) * 100
-                            if self.on_task_progress:
-                                self.on_task_progress(task)
+                            task.progress = (data.get("downloaded_bytes", 0) / total_bytes) * 100
+                        if self.on_task_progress:
+                            self.on_task_progress(task)
                 
                 # Add progress hook to options
                 options = task.options.copy()
