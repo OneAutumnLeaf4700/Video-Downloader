@@ -1,5 +1,6 @@
 # src/gui/main_window.py
 import os
+import re
 from PyQt6.QtWidgets import (
     QMainWindow,
     QWidget,
@@ -58,6 +59,7 @@ class MainWindow(QMainWindow):
         url_label = QLabel("URL:")
         self.url_input = QLineEdit()
         self.url_input.setPlaceholderText("Enter video or playlist URL")
+        self.url_input.textChanged.connect(self.validate_url)
         url_layout.addWidget(url_label)
         url_layout.addWidget(self.url_input)
         layout.addLayout(url_layout)
@@ -114,6 +116,7 @@ class MainWindow(QMainWindow):
         self.download_button.setFixedHeight(40)
         self.download_button.setIcon(QIcon.fromTheme("arrow-down"))
         self.download_button.clicked.connect(self.start_download)
+        self.download_button.setEnabled(False)  # Disabled until valid URL
         layout.addWidget(self.download_button)
 
         # Progress Bar
@@ -167,6 +170,33 @@ class MainWindow(QMainWindow):
     def show_error_dialog(self, message):
         """Displays a critical error message in a dialog box."""
         QMessageBox.critical(self, "An Error Occurred", message)
+
+    def validate_url(self, text):
+        """Validate URL and enable/disable download button."""
+        # Common video hosting patterns
+        url_patterns = [
+            r'https?://(?:www\.)?(?:youtube\.com|youtu\.be)',
+            r'https?://(?:www\.)?vimeo\.com',
+            r'https?://(?:www\.)?twitch\.tv',
+            r'https?://(?:www\.)?facebook\.com',
+            r'https?://(?:www\.)?instagram\.com',
+            r'https?://(?:www\.)?twitter\.com',
+            r'https?://(?:www\.)?tiktok\.com',
+            r'https?://(?:www\.)?dailymotion\.com',
+            r'https?://(?:www\.)?bitchute\.com',
+            r'https?://(?:www\.)?rumble\.com',
+        ]
+        
+        is_valid = any(re.search(pattern, text, re.IGNORECASE) for pattern in url_patterns)
+        self.download_button.setEnabled(bool(is_valid and text.strip()))
+        
+        # Update status label
+        if not text.strip():
+            self.status_label.setText("")
+        elif is_valid:
+            self.status_label.setText("✓ Valid URL detected")
+        else:
+            self.status_label.setText("⚠ URL may not be supported")
 
     def browse_output_directory(self):
         """Open a dialog to select the output directory."""
