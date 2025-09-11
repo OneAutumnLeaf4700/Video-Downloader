@@ -31,6 +31,11 @@ A simple yet powerful video downloader with a graphical user interface built usi
 - **Multiple Site Support**: Powered by `yt-dlp`, supports 100+ video hosting sites
 - **Format Selection**: Download videos as `MP4` or extract audio as `MP3`
 - **Resolution Options**: Choose your preferred video quality (1080p, 720p, etc.)
+- **Single MP4 Output**: Always merges video/audio to a single `.mp4` (ffmpeg)
+- **Resolution Suffix**: Filenames include resolution (e.g., `Title_1080p.mp4`)
+- **Smart Overwrite Prompt**: Confirms replacement when a same-name file exists
+- **Auto Folder Creation**: Creates the selected output folder if missing
+- **Open Folder Shortcut**: One-click button opens the current download folder
 - **Playlist Downloads**: Download entire playlists with a single click
 - **Custom Save Location**: Choose where you want to save your downloaded files
 - **Real-time Progress**: Progress bars and queue display keep you updated
@@ -63,12 +68,9 @@ Follow these steps to get the application running on your local machine.
    pip install -r requirements.txt
    ```
 
-4. **Run the application**:
-   ```bash
-   python -m venv venv
-   .\\venv\\Scripts\\activate
-   pip install -r requirements.txt
-   python main.py
+4. **Run the application** (Windows one-liner):
+   ```powershell
+   py -m venv venv; .\\venv\\Scripts\\Activate.ps1; pip install -r requirements.txt; python main.py
    ```
 
 ### Option 2: Pre-built Executable (Windows)
