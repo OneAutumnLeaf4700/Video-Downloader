@@ -1,5 +1,6 @@
 #venv
 venv/
+.venv/
 
 #pytest cache
 .pytest_cache/
@@ -51,7 +52,7 @@ coverage.xml
 *.qrc
 
 # Downloaded video/audio files
-/downloaded_content
+/downloaded_content/
 *.mp4
 *.mp3
 *.webm
@@ -75,6 +76,12 @@ coverage.xml
 
 # Logs
 *.log
+
+# IDE/OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
 
 # Environment variables
 .env
