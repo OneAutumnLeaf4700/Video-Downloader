@@ -144,11 +144,11 @@ class MainWindow(QMainWindow):
         self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.status_label)
         
-        # Open Folder Button (initially hidden)
+        # Open Folder Button (always visible)
         self.open_folder_button = QPushButton("📁 Open Download Folder")
         self.open_folder_button.setFixedHeight(35)
         self.open_folder_button.clicked.connect(self.open_download_folder)
-        self.open_folder_button.setVisible(False)
+        self.open_folder_button.setVisible(True)
         layout.addWidget(self.open_folder_button)
 
         # Add stretch to push everything to the top
@@ -209,19 +209,22 @@ class MainWindow(QMainWindow):
             self.status_label.setText("⚠ URL may not be supported")
 
     def open_download_folder(self):
-        """Open the download folder in the system file manager."""
-        if not self.last_download_path or not os.path.exists(self.last_download_path):
-            self.show_error_dialog("Download folder not found or not available.")
+        """Open the currently selected output directory in the system file manager."""
+        target_dir = self.output_path_input.text().strip() or os.getcwd()
+        try:
+            os.makedirs(target_dir, exist_ok=True)
+        except Exception as e:
+            self.show_error_dialog(f"Failed to create output directory:\n{target_dir}\n\n{e}")
             return
-        
+
         try:
             system = platform.system().lower()
             if system == "windows":
-                os.startfile(self.last_download_path)
+                os.startfile(target_dir)
             elif system == "darwin":  # macOS
-                subprocess.run(["open", self.last_download_path])
+                subprocess.run(["open", target_dir])
             else:  # Linux and others
-                subprocess.run(["xdg-open", self.last_download_path])
+                subprocess.run(["xdg-open", target_dir])
         except Exception as e:
             self.show_error_dialog(f"Could not open folder: {e}")
 
