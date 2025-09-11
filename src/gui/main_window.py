@@ -11,7 +11,6 @@ from PyQt6.QtWidgets import (
     QLabel,
     QLineEdit,
     QComboBox,
-    QCheckBox,
     QPushButton,
     QProgressBar,
     QFileDialog,
@@ -109,9 +108,7 @@ class MainWindow(QMainWindow):
         format_res_layout.addStretch()
         layout.addLayout(format_res_layout)
 
-        # Playlist Checkbox
-        self.playlist_check = QCheckBox("Download as playlist")
-        layout.addWidget(self.playlist_check)
+        # (Playlist checkbox removed)
 
         # Download Button
         self.download_button = QPushButton("Download")
@@ -285,45 +282,43 @@ class MainWindow(QMainWindow):
                 if self.resolution_combo.isEnabled()
                 else None
             ),
-            "is_playlist": self.playlist_check.isChecked(),
         }
         print(f"DEBUG: Download options = {options}")
 
-        # Check for existing file and prompt for overwrite (single video only)
-        if not options["is_playlist"]:
-            try:
-                info = get_video_info(url)
-                if info:
-                    sanitized_title = sanitize_filename(info.get("title", ""))
-                    base_dir = os.path.dirname(options["output_path"]) or os.getcwd()
-                    download_folder = create_organized_folders(
-                        base_path=base_dir,
-                        is_playlist=False,
-                        playlist_info=None,
-                        video_info=info,
-                        file_format=options["file_format"],
+        # Check for existing file and prompt for overwrite (single video path)
+        try:
+            info = get_video_info(url)
+            if info:
+                sanitized_title = sanitize_filename(info.get("title", ""))
+                base_dir = os.path.dirname(options["output_path"]) or os.getcwd()
+                download_folder = create_organized_folders(
+                    base_path=base_dir,
+                    is_playlist=False,
+                    playlist_info=None,
+                    video_info=info,
+                    file_format=options["file_format"],
+                )
+                # Rebuild resolution suffix as used in filename
+                res_suffix = ""
+                if options["file_format"] == "mp4" and options["resolution"]:
+                    res_suffix = f"_{options['resolution']}p"
+                candidate_path = os.path.join(
+                    str(download_folder), f"{sanitized_title}{res_suffix}.{options['file_format']}"
+                )
+                if os.path.exists(candidate_path):
+                    reply = QMessageBox.question(
+                        self,
+                        "File Exists",
+                        f"A file with the same name exists:\n{candidate_path}\n\nReplace it?",
+                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                        QMessageBox.StandardButton.No,
                     )
-                    # Rebuild resolution suffix as used in filename
-                    res_suffix = ""
-                    if options["file_format"] == "mp4" and options["resolution"]:
-                        res_suffix = f"_{options['resolution']}p"
-                    candidate_path = os.path.join(
-                        str(download_folder), f"{sanitized_title}{res_suffix}.{options['file_format']}"
-                    )
-                    if os.path.exists(candidate_path):
-                        reply = QMessageBox.question(
-                            self,
-                            "File Exists",
-                            f"A file with the same name exists:\n{candidate_path}\n\nReplace it?",
-                            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                            QMessageBox.StandardButton.No,
-                        )
-                        if reply == QMessageBox.StandardButton.No:
-                            self.status_label.setText("Download cancelled by user (existing file).")
-                            return
-            except Exception:
-                # Non-blocking: if we fail to check, proceed without prompt
-                pass
+                    if reply == QMessageBox.StandardButton.No:
+                        self.status_label.setText("Download cancelled by user (existing file).")
+                        return
+        except Exception:
+            # Non-blocking: if we fail to check, proceed without prompt
+            pass
 
         try:
             # Add to queue
