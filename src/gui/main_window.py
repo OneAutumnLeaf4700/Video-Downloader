@@ -188,7 +188,7 @@ class MainWindow(QMainWindow):
         ]
         
         is_valid = any(re.search(pattern, text, re.IGNORECASE) for pattern in url_patterns)
-        self.download_button.setEnabled(is_valid and text.strip())
+        self.download_button.setEnabled(bool(is_valid and text.strip()))
         
         # Update status label
         if not text.strip():
