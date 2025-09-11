@@ -73,8 +73,6 @@ Follow these steps to get the application running on your local machine.
    python main.py
    ```
 
-<!-- Packaging/executables temporarily removed -->
-
 ## How to Use
 
 1. **Launch the application** using one of the installation methods above
