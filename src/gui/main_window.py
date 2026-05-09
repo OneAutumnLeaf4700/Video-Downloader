@@ -1,4 +1,5 @@
 # src/gui/main_window.py
+import logging
 import os
 import re
 import subprocess
@@ -25,13 +26,10 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QObject, pyqtSignal
 from PyQt6.QtGui import QIcon
 from .worker import DownloaderWorker
-from ..video_downloader.downloader import (
-    download_video,
-    get_video_info,
-    sanitize_filename,
-    create_organized_folders,
-)
+from ..video_downloader.downloader import download_video
 from ..video_downloader.queue_manager import DownloadQueueManager, DownloadStatus
+
+logger = logging.getLogger(__name__)
 
 
 class _UiBridge(QObject):
@@ -233,36 +231,27 @@ class MainWindow(QMainWindow):
 
     def on_format_changed(self, format_text):
         """Enable/disable resolution combo box based on format selection"""
-        print(f"DEBUG: Format changed to: {format_text}")
         is_video = format_text.lower() == "mp4"
-        print(f"DEBUG: Is video format: {is_video}")
         
         self.resolution_combo.setEnabled(is_video)
         self.resolution_combo.setVisible(is_video)
         self.resolution_label.setVisible(is_video)
-        print(f"DEBUG: Resolution label visible: {is_video}")
 
     def start_download(self):
         """Add download to the multi-threaded queue."""
-        print("DEBUG: start_download() called")
         
         url = self.url_input.text().strip()
-        print(f"DEBUG: URL = '{url}'")
         
         if not url:
-            print("DEBUG: No URL provided, showing error dialog")
             self.show_error_dialog("Please enter a video or playlist URL.")
             return
 
         output_dir = self.output_path_input.text().strip()
-        print(f"DEBUG: Output directory = '{output_dir}'")
         
         if not os.path.isdir(output_dir):
-            print(f"DEBUG: Output directory doesn't exist, creating: {output_dir}")
             try:
                 os.makedirs(output_dir, exist_ok=True)
             except Exception as e:
-                print(f"DEBUG: Failed to create output directory: {e}")
                 self.show_error_dialog(
                     f"Failed to create output directory:\n{output_dir}\n\n{e}"
                 )
@@ -284,49 +273,10 @@ class MainWindow(QMainWindow):
             ),
             "is_playlist": True,  # Always treat as playlist to handle both single videos and playlists
         }
-        print(f"DEBUG: Download options = {options}")
-
-        # Check for existing file and prompt for overwrite (single video only)
-        if not options["is_playlist"]:
-            try:
-                info = get_video_info(url)
-                if info:
-                    sanitized_title = sanitize_filename(info.get("title", ""))
-                    base_dir = os.path.dirname(options["output_path"]) or os.getcwd()
-                    download_folder = create_organized_folders(
-                        base_path=base_dir,
-                        is_playlist=False,
-                        playlist_info=None,
-                        video_info=info,
-                        file_format=options["file_format"],
-                    )
-                    # Rebuild resolution suffix as used in filename
-                    res_suffix = ""
-                    if options["file_format"] == "mp4" and options["resolution"]:
-                        res_suffix = f"_{options['resolution']}p"
-                    candidate_path = os.path.join(
-                        str(download_folder), f"{sanitized_title}{res_suffix}.{options['file_format']}"
-                    )
-                    if os.path.exists(candidate_path):
-                        reply = QMessageBox.question(
-                            self,
-                            "File Exists",
-                            f"A file with the same name exists:\n{candidate_path}\n\nReplace it?",
-                            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                            QMessageBox.StandardButton.No,
-                        )
-                        if reply == QMessageBox.StandardButton.No:
-                            self.status_label.setText("Download cancelled by user (existing file).")
-                            return
-            except Exception:
-                # Non-blocking: if we fail to check, proceed without prompt
-                pass
 
         try:
             # Add to queue
-            print("DEBUG: Adding download to queue manager...")
             task_id = self.queue_manager.add_download(url, options)
-            print(f"DEBUG: Task ID = {task_id}")
             
             self.active_downloads[task_id] = {
                 "url": url,
@@ -335,17 +285,13 @@ class MainWindow(QMainWindow):
             }
 
             # Update UI
-            print("DEBUG: Updating UI...")
             self.download_button.setEnabled(False)
             self.status_label.setText("Download added to queue...")
             QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
             self.update_queue_display()
-            print("DEBUG: start_download() completed successfully")
             
         except Exception as e:
-            print(f"DEBUG: Exception in start_download(): {e}")
-            import traceback
-            traceback.print_exc()
+            logger.exception("start_download failed")
             self.show_error_dialog(f"Failed to start download: {e}")
             self.download_button.setEnabled(True)
             QApplication.restoreOverrideCursor()

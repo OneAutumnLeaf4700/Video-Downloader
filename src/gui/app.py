@@ -1,7 +1,9 @@
 # src/gui/app.py
-import sys
+import logging
 import os
-from PyQt6.QtWidgets import QApplication
+import shutil
+import sys
+from PyQt6.QtWidgets import QApplication, QMessageBox
 
 # Support running both as a package (python -m) and as a top-level script (PyInstaller)
 try:  # Relative import when package context is available
@@ -13,10 +15,44 @@ except Exception:  # Fallbacks for script/frozen contexts
         import importlib
         MainWindow = importlib.import_module("main_window").MainWindow  # type: ignore
 
+logger = logging.getLogger(__name__)
+
+
+def _configure_logging():
+    """Initialise root logging once, gated by the VIDEO_DOWNLOADER_DEBUG env var."""
+    level = logging.DEBUG if os.environ.get("VIDEO_DOWNLOADER_DEBUG") else logging.INFO
+    logging.basicConfig(
+        level=level,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
+
+
+def _check_ffmpeg_or_warn(parent=None):
+    """Show a non-fatal warning dialog if ffmpeg isn't on PATH.
+
+    yt-dlp depends on ffmpeg for merging and audio extraction; without it,
+    most downloads fail mid-flight with cryptic errors. Surfacing the missing
+    binary up front lets the user fix the install before they queue work.
+    Returns True if ffmpeg is available.
+    """
+    if shutil.which("ffmpeg"):
+        return True
+    logger.warning("ffmpeg not found on PATH — downloads will fail mid-flight")
+    QMessageBox.warning(
+        parent,
+        "FFmpeg not found",
+        "FFmpeg is required for video/audio conversion but was not found on "
+        "your system PATH.\n\nDownload it from https://ffmpeg.org/download.html "
+        "and ensure the ffmpeg binary is on PATH, then restart this app.",
+    )
+    return False
+
 
 def run_app():
     """Initialize and run the GUI application"""
+    _configure_logging()
     app = QApplication(sys.argv)
+    _check_ffmpeg_or_warn()
 
     # Load and apply the stylesheet (handle PyInstaller one-file via _MEIPASS)
     if getattr(sys, 'frozen', False):
@@ -28,7 +64,7 @@ def run_app():
         with open(style_path, "r") as f:
             app.setStyleSheet(f.read())
     except FileNotFoundError:
-        print(f"Warning: Stylesheet file not found at {style_path}")
+        logger.warning("Stylesheet file not found at %s", style_path)
         # Use a basic dark theme as fallback
         fallback_style = (
             "QMainWindow { background-color: #2c3e50; }"

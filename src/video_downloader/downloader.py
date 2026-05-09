@@ -6,9 +6,7 @@ import os
 import re
 from pathlib import Path
 
-
-# Configure logging for error reporting
-logging.basicConfig(level=logging.INFO)
+# Library module — leave logging configuration to the application entry point.
 logger = logging.getLogger(__name__)
 
 def sanitize_filename(filename):
@@ -64,7 +62,7 @@ def get_playlist_info(url):
                 'webpage_url': info.get('webpage_url', url)
             }
     except Exception as e:
-        print(f"Warning: Could not extract playlist info: {e}")
+        logger.warning("Could not extract playlist info: %s", e)
         return None
 
 
@@ -106,7 +104,7 @@ def get_video_info(url):
                 'webpage_url': info.get('webpage_url', url)
             }
     except Exception as e:
-        print(f"Warning: Could not extract video info: {e}")
+        logger.warning("Could not extract video info: %s", e)
         return None
 
 
@@ -165,28 +163,37 @@ def download_video(
         
         # Get playlist info if it's a playlist
         if is_playlist:
-            print("Retrieving playlist information...")
+            logger.info("Retrieving playlist information...")
             playlist_info = get_playlist_info(url)
             if playlist_info:
-                print(f"Found playlist: '{playlist_info['title']}' by {playlist_info['uploader']} ({playlist_info['entry_count']} videos)")
+                logger.info(
+                    "Found playlist: '%s' by %s (%s videos)",
+                    playlist_info["title"],
+                    playlist_info["uploader"],
+                    playlist_info["entry_count"],
+                )
         else:
             # Get video info for single video
-            print("Retrieving video information...")
+            logger.info("Retrieving video information...")
             video_info = get_video_info(url)
             if video_info:
-                print(f"Found video: '{video_info['title']}' by {video_info['uploader']}")
-        
+                logger.info(
+                    "Found video: '%s' by %s",
+                    video_info["title"],
+                    video_info["uploader"],
+                )
+
         # Create organized folder structure
         download_folder = create_organized_folders(
-            base_dir, 
-            is_playlist, 
-            playlist_info, 
-            video_info, 
-            file_format
+            base_dir,
+            is_playlist,
+            playlist_info,
+            video_info,
+            file_format,
         )
         final_output_path = str(download_folder / filename_template)
-        
-        print(f"Downloads will be saved to: {download_folder}")
+
+        logger.info("Downloads will be saved to: %s", download_folder)
     
     ydl_opts = {
         "outtmpl": final_output_path,
