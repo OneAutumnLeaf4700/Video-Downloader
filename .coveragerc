@@ -1,0 +1,12 @@
+[run]
+source = src
+branch = False
+omit =
+    src/gui/*
+    src/config.py
+    tests/*
+
+[report]
+show_missing = True
+skip_covered = False
+precision = 1
