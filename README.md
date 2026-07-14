@@ -9,8 +9,6 @@
 
 ![App banner](docs/screenshots/banner.png)
 
-<!-- TODO: replace banner with a 15-second GIF demo of the GUI downloading something. Save as docs/demo.gif. -->
-
 ## Features
 
 - **Modern PyQt6 GUI** — clean dark-themed interface
